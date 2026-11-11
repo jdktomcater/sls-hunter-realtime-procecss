@@ -8,12 +8,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AlertService {
+    private static final Logger log = LoggerFactory.getLogger(AlertService.class);
     private final ObjectMapper mapper;
     private final AlertSettings settings;
     private final TelegramSender sender;
@@ -26,7 +29,11 @@ public class AlertService {
 
     @KafkaListener(topics = "${alert.topic}")
     public void consume(String payload, Acknowledgment ack) throws Exception {
-        process(payload);
+        try {
+            process(payload);
+        } catch (Exception ex) {
+            log.error("消息处理异常：{}", payload, ex);
+        }
         // Only commit the Kafka offset after the entire snapshot has been processed.
         ack.acknowledge();
     }
