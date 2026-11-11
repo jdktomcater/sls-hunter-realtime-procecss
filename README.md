@@ -20,6 +20,8 @@ java -jar target/sls-hunter-realtime-process-1.0.0.jar
 
 实际 broker 地址以部署环境为准；本仓库示例配置中的地址是内网地址。可通过 Spring Boot 配置 `spring.kafka.properties.*` 设置 SASL/TLS，不要将密码写进版本库。首次建组默认 `latest`，只消费启动后的新消息；要回放历史可设 `KAFKA_AUTO_OFFSET_RESET=earliest`，并评估群消息量。已有消费组位点时该选项不改变位点。消费者设置 `read_committed`，上游事务提交后才可见。
 
+Telegram 配置集中在 `telegram` 下：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 必填；`TELEGRAM_API_BASE_URL` 默认 `https://api.telegram.org`，`TELEGRAM_CONNECT_TIMEOUT` 默认 `10s`，`TELEGRAM_REQUEST_TIMEOUT` 默认 `20s`。超时使用 Spring 的时长格式（如 `500ms`、`30s`）。也可直接设置对应的 `telegram.bot-token`、`telegram.chat-id`、`telegram.api-base-url`、`telegram.connect-timeout` 和 `telegram.request-timeout`。旧配置 `alert.bot-token` 和 `alert.chat-id` 仍可作为后备值使用。
+
 ### 筛选策略
 
 - `RISK_MODE=score`（默认）：接受日快照及 `baseline_mode=none` 的固定窗口快照，筛选所有评分大于等于 `MIN_SCORE` 的信号。固定窗口适用于 `history.compare=false` 配置；评分阈值是告警策略，不能证明攻击已发生。

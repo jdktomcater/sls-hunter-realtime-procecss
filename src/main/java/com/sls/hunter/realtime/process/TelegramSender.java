@@ -2,29 +2,28 @@ package com.sls.hunter.realtime.process;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
 @Component
 public class TelegramSender {
-    private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private final HttpClient client;
     private final ObjectMapper mapper;
-    private final AlertSettings settings;
+    private final TelegramSettings settings;
 
-    TelegramSender(ObjectMapper mapper, AlertSettings settings) {
+    TelegramSender(ObjectMapper mapper, TelegramSettings settings) {
         this.mapper = mapper;
         this.settings = settings;
+        this.client = HttpClient.newBuilder().connectTimeout(settings.connectTimeout).build();
     }
 
     void send(String message) throws Exception {
         String body = mapper.writeValueAsString(Map.of("chat_id", settings.chatId, "text", message));
-        HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.telegram.org/bot" + settings.token + "/sendMessage")).timeout(Duration.ofSeconds(20)).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        HttpRequest request = HttpRequest.newBuilder(settings.sendMessageUri()).timeout(settings.requestTimeout).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body)).build();
         HttpResponse<String> response;
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());

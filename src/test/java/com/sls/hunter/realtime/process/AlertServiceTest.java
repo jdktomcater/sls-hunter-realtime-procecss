@@ -21,7 +21,7 @@ class AlertServiceTest {
 
   @Test
   void sendsMatchingSignalsFromEverySnapshotAndAcknowledgesAfterSending() throws Exception {
-    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("score", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     int[] count = {0};
@@ -35,7 +35,7 @@ class AlertServiceTest {
 
   @Test
   void failedSendDoesNotAcknowledgeAndReplayCanRepeatPriorAlerts() throws Exception {
-    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("score", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     int[] count = {0};
@@ -51,7 +51,7 @@ class AlertServiceTest {
 
   @Test
   void rejectsIncompatibleModeBeforeSending() throws Exception {
-    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("score", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     assertThrows(IllegalArgumentException.class,
@@ -61,7 +61,7 @@ class AlertServiceTest {
 
   @Test
   void processesDailySnapshotsAndIncludesTheirDateAndRevision() throws Exception {
-    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("score", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     String payload = """
@@ -77,7 +77,7 @@ class AlertServiceTest {
 
   @Test
   void channelModeSelectsOnlyHighRiskAndRejectsDailySnapshots() throws Exception {
-    AlertSettings settings = new AlertSettings("channel", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("channel", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     String signals = "{\"signal_id\":\"a\",\"channel\":\"high_risk\",\"score\":70},"
@@ -91,7 +91,7 @@ class AlertServiceTest {
 
   @Test
   void validatesEntireSnapshotBeforeSending() {
-    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    AlertSettings settings = new AlertSettings("score", 70);
     FakeSender sender = new FakeSender(settings);
     AlertService service = new AlertService(new ObjectMapper(), settings, sender);
     assertThrows(IllegalArgumentException.class,
@@ -105,7 +105,7 @@ class AlertServiceTest {
     String lastMessage;
 
     FakeSender(AlertSettings settings) {
-      super(new ObjectMapper(), settings);
+      super(new ObjectMapper(), new TelegramSettings("token", "chat", java.net.URI.create("https://api.telegram.org"), java.time.Duration.ofSeconds(10), java.time.Duration.ofSeconds(20)));
     }
 
     @Override
