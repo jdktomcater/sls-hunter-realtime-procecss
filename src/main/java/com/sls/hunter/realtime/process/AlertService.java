@@ -16,13 +16,11 @@ import org.springframework.stereotype.Service;
 public class AlertService {
     private final ObjectMapper mapper;
     private final AlertSettings settings;
-    private final AlertStore store;
     private final TelegramSender sender;
 
-    AlertService(ObjectMapper mapper, AlertSettings settings, AlertStore store, TelegramSender sender) {
+    AlertService(ObjectMapper mapper, AlertSettings settings, TelegramSender sender) {
         this.mapper = mapper;
         this.settings = settings;
-        this.store = store;
         this.sender = sender;
     }
 
@@ -38,8 +36,8 @@ public class AlertService {
         if (root == null || !root.isObject() || !"SNAPSHOT".equals(text(root, "kind")) || !"REPLACE".equals(text(root, "operation"))) {
             throw new IllegalArgumentException("Expected a REPLACE SNAPSHOT");
         }
-        String family = required(root, "index_family");
-        String window = required(root, "window_start");
+        required(root, "index_family");
+        required(root, "window_start");
         JsonNode revisionNode = root.get("revision");
         JsonNode signals = root.get("all_signals");
         if (revisionNode == null || !revisionNode.isIntegralNumber() || !revisionNode.canConvertToLong() || revisionNode.longValue() < 1 || signals == null || !signals.isArray()) {
@@ -52,7 +50,6 @@ public class AlertService {
             throw new IllegalArgumentException("Channel mode requires baseline_mode=same_time_previous_days");
         }
 
-        long revision = revisionNode.longValue();
         Map<String, JsonNode> selected = new LinkedHashMap<>();
         Set<String> ids = new HashSet<>();
         for (JsonNode signal : signals) {
@@ -72,19 +69,9 @@ public class AlertService {
             }
         }
 
-        if (revision <= store.revision(family, window)) {
-            return;
+        for (JsonNode signal : selected.values()) {
+            sender.send(format(root, signal));
         }
-        Set<String> active = store.active(family, window);
-        for (var entry : selected.entrySet()) {
-            String id = entry.getKey();
-            if (!active.contains(id) && !store.delivered(family, window, revision, id)) {
-                sender.send(format(root, entry.getValue()));
-                // Persist each successful send so a later failure can be replayed without resending it.
-                store.markDelivered(family, window, revision, id);
-            }
-        }
-        store.finish(family, window, revision, selected.keySet());
     }
 
     static String text(JsonNode n, String key) {

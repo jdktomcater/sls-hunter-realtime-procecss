@@ -20,6 +20,5 @@ alert:
   topic: ${KAFKA_TOPIC:sls-mining-window-fixed}
   risk-mode: ${RISK_MODE:score}
   min-score: ${MIN_SCORE:70}
-  state-file: ${STATE_FILE:./data/alert-state.db}
   bot-token: ${TELEGRAM_BOT_TOKEN:}
   chat-id: ${TELEGRAM_CHAT_ID:}
