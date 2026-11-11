@@ -2,6 +2,7 @@ package com.sls.hunter.realtime.process;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -58,9 +59,50 @@ class AlertServiceTest {
     assertEquals(0, sender.calls);
   }
 
+  @Test
+  void processesDailySnapshotsAndIncludesTheirDateAndRevision() throws Exception {
+    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    FakeSender sender = new FakeSender(settings);
+    AlertService service = new AlertService(new ObjectMapper(), settings, sender);
+    String payload = """
+        {"kind":"SNAPSHOT","operation":"REPLACE","index_family":"tracing_sas_linux",
+         "target_day":"2026-01-01","revision":2,"status":"CORRECTED",
+         "all_signals":[{"signal_id":"a","score":80,"description":"test"}]}
+        """;
+    service.process(payload);
+    assertEquals(1, sender.calls);
+    assertTrue(sender.lastMessage.contains("目标日期：2026-01-01"));
+    assertTrue(sender.lastMessage.contains("版本：2"));
+  }
+
+  @Test
+  void channelModeSelectsOnlyHighRiskAndRejectsDailySnapshots() throws Exception {
+    AlertSettings settings = new AlertSettings("channel", "token", "chat", 70);
+    FakeSender sender = new FakeSender(settings);
+    AlertService service = new AlertService(new ObjectMapper(), settings, sender);
+    String signals = "{\"signal_id\":\"a\",\"channel\":\"high_risk\",\"score\":70},"
+        + "{\"signal_id\":\"b\",\"channel\":\"history\",\"score\":100}";
+    service.process(snapshot(1, signals).replace("\"none\"", "\"same_time_previous_days\""));
+    assertEquals(1, sender.calls);
+    assertThrows(IllegalArgumentException.class, () -> service.process(
+        "{\"kind\":\"SNAPSHOT\",\"operation\":\"REPLACE\",\"index_family\":\"linux\","
+            + "\"target_day\":\"2026-01-01\",\"revision\":1,\"all_signals\":[]}"));
+  }
+
+  @Test
+  void validatesEntireSnapshotBeforeSending() {
+    AlertSettings settings = new AlertSettings("score", "token", "chat", 70);
+    FakeSender sender = new FakeSender(settings);
+    AlertService service = new AlertService(new ObjectMapper(), settings, sender);
+    assertThrows(IllegalArgumentException.class,
+        () -> service.process(snapshot(1, signal("a", 80) + "," + signal("a", 90))));
+    assertEquals(0, sender.calls);
+  }
+
   static class FakeSender extends TelegramSender {
     int calls;
     boolean failSecond;
+    String lastMessage;
 
     FakeSender(AlertSettings settings) {
       super(new ObjectMapper(), settings);
@@ -69,6 +111,7 @@ class AlertServiceTest {
     @Override
     void send(String text) {
       calls++;
+      lastMessage = text;
       if (failSecond && calls == 2) {
         throw new IllegalStateException("failure");
       }

@@ -37,16 +37,21 @@ public class AlertService {
             throw new IllegalArgumentException("Expected a REPLACE SNAPSHOT");
         }
         required(root, "index_family");
-        required(root, "window_start");
+        boolean fixedWindow = root.has("window_start");
+        if (fixedWindow) {
+            required(root, "window_start");
+        } else {
+            required(root, "target_day");
+        }
         JsonNode revisionNode = root.get("revision");
         JsonNode signals = root.get("all_signals");
         if (revisionNode == null || !revisionNode.isIntegralNumber() || !revisionNode.canConvertToLong() || revisionNode.longValue() < 1 || signals == null || !signals.isArray()) {
             throw new IllegalArgumentException("Invalid revision or all_signals");
         }
-        if (settings.mode.equals("score") && !"none".equals(text(root, "baseline_mode"))) {
+        if (fixedWindow && settings.mode.equals("score") && !"none".equals(text(root, "baseline_mode"))) {
             throw new IllegalArgumentException("Score mode requires baseline_mode=none");
         }
-        if (settings.mode.equals("channel") && !"same_time_previous_days".equals(text(root, "baseline_mode"))) {
+        if (settings.mode.equals("channel") && (!fixedWindow || !"same_time_previous_days".equals(text(root, "baseline_mode")))) {
             throw new IllegalArgumentException("Channel mode requires baseline_mode=same_time_previous_days");
         }
 
@@ -103,8 +108,11 @@ public class AlertService {
         add(b, "进程", text(signal, "proc_name"));
         add(b, "命中次数", text(signal, "hit_count"));
         add(b, "数据族", text(root, "index_family"));
+        add(b, "目标日期", text(root, "target_day"));
         add(b, "窗口开始", text(root, "window_start"));
         add(b, "窗口结束", text(root, "window_end"));
+        add(b, "状态", text(root, "status"));
+        add(b, "版本", text(root, "revision"));
         add(b, "信号 ID", text(signal, "signal_id"));
         return b.toString();
     }
