@@ -4,9 +4,9 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:172.30.82.120:9092,172.30.82.121:9092,172.30.82.122:9092}
     consumer:
-      group-id: ${KAFKA_GROUP_ID:sls-telegram-alert-v1}
+      group-id: ${KAFKA_GROUP_ID:sls-telegram-alert-v4}
       enable-auto-commit: false
-      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:latest}
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:

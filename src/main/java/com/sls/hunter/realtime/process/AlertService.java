@@ -32,7 +32,7 @@ public class AlertService {
         try {
             process(payload);
         } catch (Exception ex) {
-            log.error("消息处理异常：{}", payload, ex);
+            log.error("消息处理异常");
         }
         // Only commit the Kafka offset after the entire snapshot has been processed.
         ack.acknowledge();
@@ -53,13 +53,13 @@ public class AlertService {
         JsonNode revisionNode = root.get("revision");
         JsonNode signals = root.get("all_signals");
         if (revisionNode == null || !revisionNode.isIntegralNumber() || !revisionNode.canConvertToLong() || revisionNode.longValue() < 1 || signals == null || !signals.isArray()) {
-            throw new IllegalArgumentException("Invalid revision or all_signals");
+            return;
         }
         if (fixedWindow && settings.mode.equals("score") && !"none".equals(text(root, "baseline_mode"))) {
-            throw new IllegalArgumentException("Score mode requires baseline_mode=none");
+            return;
         }
         if (settings.mode.equals("channel") && (!fixedWindow || !"same_time_previous_days".equals(text(root, "baseline_mode")))) {
-            throw new IllegalArgumentException("Channel mode requires baseline_mode=same_time_previous_days");
+            return;
         }
 
         Map<String, JsonNode> selected = new LinkedHashMap<>();

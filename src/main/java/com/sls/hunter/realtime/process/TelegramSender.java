@@ -7,10 +7,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TelegramSender {
+    private static final Logger log = LoggerFactory.getLogger(TelegramSender.class);
     private final HttpClient client;
     private final ObjectMapper mapper;
     private final TelegramSettings settings;
@@ -28,9 +31,10 @@ public class TelegramSender {
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            log.error("Telegram request interrupted", e);
             throw new IllegalStateException("Telegram request interrupted");
         } catch (Exception e) {
+            log.error("Telegram request failed", e);
             throw new IllegalStateException("Telegram request failed");
         }
         if (response.statusCode() != 200 || !mapper.readTree(response.body()).path("ok").asBoolean(false)) {
